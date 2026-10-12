@@ -1,77 +1,113 @@
 #include <iostream>
-#include <queue>
-#include <set>
 #include <string>
 
 using namespace std;
 
-// We can only use cstdio and iostream, so we'll implement our own min and max heaps
-// using priority_queue with appropriate comparators
+// We can only use cstdio and iostream, so we'll implement a simple list-based
+// structure to store floor requests
 
 class Elevator {
 private:
     int currentFloor;
     bool movingUp; // true for up, false for down
     
-    // Two sets to store floor requests (using set for efficient removal)
-    // We use set instead of priority_queue to support cancel operation
-    set<int> upRequests;    // Requests above current floor that need upward movement
-    set<int> downRequests;  // Requests below current floor that need downward movement
-    
-    // Also keep track of all requests to handle cancel properly
-    set<int> allRequests;
+    // Maximum number of requests
+    static const int MAX_REQUESTS = 500000;
+    int requests[MAX_REQUESTS];
+    int requestCount;
 
 public:
-    Elevator() : currentFloor(0), movingUp(true) {}
+    Elevator() : currentFloor(0), movingUp(true), requestCount(0) {}
+    
+    // Check if a floor is already in requests
+    bool hasRequest(int floor) {
+        for (int i = 0; i < requestCount; i++) {
+            if (requests[i] == floor) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     void addRequest(int floor) {
-        // Add to appropriate request set based on floor position
-        if (floor > currentFloor) {
-            upRequests.insert(floor);
-        } else if (floor < currentFloor) {
-            downRequests.insert(floor);
+        // Only add if not already present
+        if (!hasRequest(floor)) {
+            requests[requestCount++] = floor;
         }
-        allRequests.insert(floor);
     }
     
     void cancelRequest(int floor) {
-        // Remove from all sets
-        upRequests.erase(floor);
-        downRequests.erase(floor);
-        allRequests.erase(floor);
+        for (int i = 0; i < requestCount; i++) {
+            if (requests[i] == floor) {
+                // Remove by shifting elements
+                for (int j = i; j < requestCount - 1; j++) {
+                    requests[j] = requests[j + 1];
+                }
+                requestCount--;
+                break;
+            }
+        }
     }
     
     void action() {
         // If no requests, do nothing (keep current direction)
-        if (allRequests.empty()) {
+        if (requestCount == 0) {
             return;
         }
         
-        // Check if there are requests in the current direction
-        if (movingUp && !upRequests.empty()) {
-            // Go to the closest floor in the upward direction
-            currentFloor = *upRequests.begin();
-            upRequests.erase(upRequests.begin());
-            allRequests.erase(currentFloor);
-        } else if (!movingUp && !downRequests.empty()) {
-            // Go to the closest floor in the downward direction
-            currentFloor = *downRequests.rbegin();
-            downRequests.erase(prev(downRequests.end()));
-            allRequests.erase(currentFloor);
+        // Find the next floor to go to based on current direction and rules
+        int nextFloor = -1;
+        
+        // First, check if there are requests in the current direction
+        if (movingUp) {
+            // Look for the closest floor above current floor
+            for (int i = 0; i < requestCount; i++) {
+                if (requests[i] > currentFloor) {
+                    if (nextFloor == -1 || requests[i] < nextFloor) {
+                        nextFloor = requests[i];
+                    }
+                }
+            }
         } else {
-            // No requests in current direction, reverse direction
+            // Look for the closest floor below current floor
+            for (int i = 0; i < requestCount; i++) {
+                if (requests[i] < currentFloor) {
+                    if (nextFloor == -1 || requests[i] > nextFloor) {
+                        nextFloor = requests[i];
+                    }
+                }
+            }
+        }
+        
+        // If no request in current direction, reverse direction and find closest
+        if (nextFloor == -1) {
             movingUp = !movingUp;
             
-            // Now handle the request in the new direction
-            if (movingUp && !upRequests.empty()) {
-                currentFloor = *upRequests.begin();
-                upRequests.erase(upRequests.begin());
-                allRequests.erase(currentFloor);
-            } else if (!movingUp && !downRequests.empty()) {
-                currentFloor = *downRequests.rbegin();
-                downRequests.erase(prev(downRequests.end()));
-                allRequests.erase(currentFloor);
+            if (movingUp) {
+                // Look for the closest floor above current floor
+                for (int i = 0; i < requestCount; i++) {
+                    if (requests[i] > currentFloor) {
+                        if (nextFloor == -1 || requests[i] < nextFloor) {
+                            nextFloor = requests[i];
+                        }
+                    }
+                }
+            } else {
+                // Look for the closest floor below current floor
+                for (int i = 0; i < requestCount; i++) {
+                    if (requests[i] < currentFloor) {
+                        if (nextFloor == -1 || requests[i] > nextFloor) {
+                            nextFloor = requests[i];
+                        }
+                    }
+                }
             }
+        }
+        
+        // Update current floor and remove the request
+        if (nextFloor != -1) {
+            currentFloor = nextFloor;
+            cancelRequest(nextFloor);
         }
     }
     
