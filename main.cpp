@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 
 using namespace std;
 
@@ -126,20 +125,24 @@ int main() {
     Elevator elevator;
     
     for (int i = 0; i < n; i++) {
-        string operation;
+        char operation[10];
         cin >> operation;
         
-        if (operation == "action") {
+        if (operation[0] == 'a' && operation[1] == 'c') {
+            // action
             elevator.action();
-        } else if (operation == "add") {
+        } else if (operation[0] == 'a' && operation[1] == 'd') {
+            // add
             int floor;
             cin >> floor;
             elevator.addRequest(floor);
-        } else if (operation == "cancel") {
+        } else if (operation[0] == 'c') {
+            // cancel
             int floor;
             cin >> floor;
             elevator.cancelRequest(floor);
-        } else if (operation == "locate") {
+        } else if (operation[0] == 'l') {
+            // locate
             cout << elevator.getCurrentFloor() << endl;
         }
     }
